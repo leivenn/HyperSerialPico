@@ -52,7 +52,7 @@ ENDIF(CMAKE_COMPILER_IS_GNUCC)
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-# generic HyperSerialPico settings
+# generic HyperSerialPico settings 
 set(HyperSerialPicoCompanionLibs FreeRTOS-Kernel FreeRTOS-Kernel-Heap1 pico_stdlib pico_multicore hardware_pio hardware_dma hardware_spi)
 set(HyperSerialPicoCompanionIncludes ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/sdk/config)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/generated)
