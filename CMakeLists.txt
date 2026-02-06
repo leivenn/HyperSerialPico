@@ -1,38 +1,28 @@
 if (NOT PICO_PROGRAM_MAIN_ENTRY)
-	# =================================================================
-	# CONFIGURATION EVAN - SCORPIO PINS 6 & 7
-	# =================================================================
+    # ==========================================
+    # CLEAN CONFIGURATION - PINS 6 & 7
+    # ==========================================
+    
+    set(BOOT_WORKAROUND ON)
 
-	# Sécurité au démarrage (ON est mieux pour la stabilité)
-	set(BOOT_WORKAROUND ON)
+    # PIN 6 (GPIO 22)
+    set(OUTPUT_DATA_PIN 22)
 
-	# --- PISTE 1 (Pin "6" sur la carte Scorpio) ---
-	# Correspond au GPIO 22 du processeur
-	set(OUTPUT_DATA_PIN 22)
+    # PIN 7 (GPIO 23) -> Automatic via Index
+    set(SECOND_SEGMENT_INDEX 340)
+    set(SECOND_SEGMENT_REVERSED OFF)
 
-	# --- PISTE 2 (Pin "7" sur la carte Scorpio) ---
-	# Ici on définit à quelle LED on coupe pour passer au fil suivant.
-	# Le firmware passera tout seul au GPIO suivant (22 + 1 = 23 -> Pin 7)
-	set(SECOND_SEGMENT_INDEX 340)
+    # SPI Settings (Default)
+    set(OUTPUT_SPI_DATA_PIN 3)
+    set(OUTPUT_SPI_CLOCK_PIN 2)
+    set(OUTPUT_SPI_INTERFACE spi0)
 
-	# Sens du deuxième segment (OFF = sens normal)
-	set(SECOND_SEGMENT_REVERSED OFF)
-
-	# --- SPI (On ne touche pas, c'est pour d'autres types de LEDs) ---
-	set(OUTPUT_SPI_DATA_PIN 3)
-	set(OUTPUT_SPI_CLOCK_PIN 2)
-	set(OUTPUT_SPI_INTERFACE spi0)
-
-	# Fin de la config utilisateur
 endif()
 
 cmake_minimum_required(VERSION 3.13)
 
-# Disable Pico 'Reset device'
 add_definitions ( -DPICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=0 )
 
-# initialize the SDK based on PICO_SDK_PATH
-# note: this must happen before project()
 set(PICO_SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/sdk/pico)
 set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/sdk/freertos)
 
@@ -50,10 +40,8 @@ IF(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Og")
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
-# initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-# generic HyperSerialPico settings
 set(HyperSerialPicoCompanionLibs FreeRTOS-Kernel FreeRTOS-Kernel-Heap1 pico_stdlib pico_multicore hardware_pio hardware_dma hardware_spi)
 set(HyperSerialPicoCompanionIncludes ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/sdk/config)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/generated)
@@ -125,7 +113,6 @@ macro(HyperSerialPicoTarget HyperSerialPicoTargetName)
     add_custom_command(TARGET ${HyperSerialPicoTargetName} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/${HyperSerialPicoTargetName}.uf2 ${CMAKE_CURRENT_SOURCE_DIR}/firmware)
 endmacro()
 
-# targets for different LED strips
 IF(NOT SECOND_SEGMENT_INDEX)
     IF(NOT DISABLE_SPI_LEDS)
         HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_Spi")
@@ -144,4 +131,15 @@ ELSE()
         HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_sk6812Cold_multisegment_at_${SECOND_SEGMENT_INDEX}")
         target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Cold_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGBW -DCOLD_WHITE -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX=${SECOND_SEGMENT_INDEX})
         HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_sk6812Neutral_multisegment_at_${SECOND_SEGMENT_INDEX}")
-        target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Neutral_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGBW -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Neutral_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGBW -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX=${SECOND_SEGMENT_INDEX})
+        HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_ws2812_multisegment_at_${SECOND_SEGMENT_INDEX}")
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_ws2812_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGB -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX=${SECOND_SEGMENT_INDEX})
+    ELSE()
+        HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_sk6812Cold_rev_multisegment_at_${SECOND_SEGMENT_INDEX}")
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Cold_rev_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGBW -DCOLD_WHITE -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX=${SECOND_SEGMENT_INDEX} -DSECOND_SEGMENT_REVERSED)
+        HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_sk6812Neutral_rev_multisegment_at_${SECOND_SEGMENT_INDEX}")
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Neutral_rev_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGBW -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX=${SECOND_SEGMENT_INDEX} -DSECOND_SEGMENT_REVERSED)
+        HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_ws2812_rev_multisegment_at_${SECOND_SEGMENT_INDEX}")
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_ws2812_rev_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGB -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX=${SECOND_SEGMENT_INDEX} -DSECOND_SEGMENT_REVERSED)
+    ENDIF()
+ENDIF()
