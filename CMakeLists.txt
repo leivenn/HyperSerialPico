@@ -1,15 +1,20 @@
 if (NOT PICO_PROGRAM_MAIN_ENTRY)
     # ==========================================
-    # CONFIGURATION EVAN SCORPIO (Mode 1+2 et 3)
+    # CONFIGURATION EVAN SCORPIO (Pins 3 et 4)
     # ==========================================
     set(BOOT_WORKAROUND ON) 
 
-    # On force les pins ici pour ignorer les overrides externes
-    set(OUTPUT_DATA_PIN 16)
+    # --- PISTE 1 (Trou 3) ---
+    # Correspond au GPIO 19
+    set(OUTPUT_DATA_PIN 19)
+
+    # --- PISTE 2 (Trou 4) ---
+    # Automatique : 19 + 1 = 20 (Trou 4)
     set(SECOND_SEGMENT_INDEX 340)
+
     set(SECOND_SEGMENT_REVERSED OFF)
 
-    # Pins SPI par défaut (non utilisés)
+    # SPI (On laisse par défaut)
     set(OUTPUT_SPI_DATA_PIN 3)
     set(OUTPUT_SPI_CLOCK_PIN 2)
     set(OUTPUT_SPI_INTERFACE spi0)
