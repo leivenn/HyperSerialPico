@@ -2,27 +2,17 @@ if (NOT PICO_PROGRAM_MAIN_ENTRY)
     # ==========================================
     # CONFIGURATION EVAN SCORPIO (Mode 1+2 et 3)
     # ==========================================
-
-    # Adafruit a souvent besoin de ce fix pour booter correctement
     set(BOOT_WORKAROUND ON) 
 
-    # --- PISTE 1 (Pin "0" sur la carte = GPIO 16) ---
-    # C'est LA modif importante. Le Scorpio sort le 5V ici.
-    # Contient Ruban 1 + Ruban 2 (Daisy Chain)
+    # On force les pins ici pour ignorer les overrides externes
     set(OUTPUT_DATA_PIN 16)
-
-    # --- PISTE 2 (Pin "1" sur la carte = GPIO 17) ---
-    # HyperSerialPico prend automatiquement OUTPUT_DATA_PIN + 1
-    # Donc ça sortira sur le GPIO 17 (Pin "1")
     set(SECOND_SEGMENT_INDEX 340)
-
     set(SECOND_SEGMENT_REVERSED OFF)
 
-    # --- SPI (Non utilisé) ---
-    set(OUTPUT_SPI_DATA_PIN 6) # Tu peux laisser ça, on s'en fout
-    set(OUTPUT_SPI_CLOCK_PIN 7)
+    # Pins SPI par défaut (non utilisés)
+    set(OUTPUT_SPI_DATA_PIN 3)
+    set(OUTPUT_SPI_CLOCK_PIN 2)
     set(OUTPUT_SPI_INTERFACE spi0)
-
 endif()
 
 cmake_minimum_required(VERSION 3.13)
@@ -70,10 +60,12 @@ if (OVERRIDE_BOOT_WORKAROUND)
 	set(BOOT_WORKAROUND ${OVERRIDE_BOOT_WORKAROUND})
 endif()
 
+# NETTOYAGE DES LOGS ET AFFICHAGE REEL
 message( STATUS "---------------------------")
-message( STATUS "Config Evan (1+2 et 3) :")
-message( STATUS "Piste 1 (GPIO 2) : LEDs 0 -> 339 (Ruban 1 + 2)")
-message( STATUS "Piste 2 (GPIO 3) : LEDs 340 -> Fin (Ruban 3)")
+message( STATUS "Config Evan SCORPIO (1+2 et 3) :")
+message( STATUS "Piste 1 (DATA_PIN) : GPIO ${OUTPUT_DATA_PIN} (LEDs 0-339)")
+message( STATUS "Piste 2 (SEGMENT_2): GPIO 17 (LEDs 340+)")
+message( STATUS "Boot workaround    : ${BOOT_WORKAROUND}")
 message( STATUS "---------------------------")
 
 add_compile_options(-ftrack-macro-expansion=0 -fno-diagnostics-show-caret -fdiagnostics-color=auto)
