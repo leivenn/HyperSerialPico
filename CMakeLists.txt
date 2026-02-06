@@ -1,23 +1,29 @@
 if (NOT PICO_PROGRAM_MAIN_ENTRY)
-    # ==========================================
-    # CONFIGURATION EVAN SCORPIO (Pins 3 et 4)
-    # ==========================================
-    set(BOOT_WORKAROUND ON) 
+	# =================================================================
+	# CONFIGURATION EVAN - SCORPIO PINS 6 & 7
+	# =================================================================
 
-    # --- PISTE 1 (Trou 3) ---
-    # Correspond au GPIO 19
-    set(OUTPUT_DATA_PIN 19)
+	# Sécurité au démarrage (ON est mieux pour la stabilité)
+	set(BOOT_WORKAROUND ON)
 
-    # --- PISTE 2 (Trou 4) ---
-    # Automatique : 19 + 1 = 20 (Trou 4)
-    set(SECOND_SEGMENT_INDEX 340)
+	# --- PISTE 1 (Pin "6" sur la carte Scorpio) ---
+	# Correspond au GPIO 22 du processeur
+	set(OUTPUT_DATA_PIN 22)
 
-    set(SECOND_SEGMENT_REVERSED OFF)
+	# --- PISTE 2 (Pin "7" sur la carte Scorpio) ---
+	# Ici on définit à quelle LED on coupe pour passer au fil suivant.
+	# Le firmware passera tout seul au GPIO suivant (22 + 1 = 23 -> Pin 7)
+	set(SECOND_SEGMENT_INDEX 340)
 
-    # SPI (On laisse par défaut)
-    set(OUTPUT_SPI_DATA_PIN 3)
-    set(OUTPUT_SPI_CLOCK_PIN 2)
-    set(OUTPUT_SPI_INTERFACE spi0)
+	# Sens du deuxième segment (OFF = sens normal)
+	set(SECOND_SEGMENT_REVERSED OFF)
+
+	# --- SPI (On ne touche pas, c'est pour d'autres types de LEDs) ---
+	set(OUTPUT_SPI_DATA_PIN 3)
+	set(OUTPUT_SPI_CLOCK_PIN 2)
+	set(OUTPUT_SPI_INTERFACE spi0)
+
+	# Fin de la config utilisateur
 endif()
 
 cmake_minimum_required(VERSION 3.13)
@@ -26,6 +32,7 @@ cmake_minimum_required(VERSION 3.13)
 add_definitions ( -DPICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=0 )
 
 # initialize the SDK based on PICO_SDK_PATH
+# note: this must happen before project()
 set(PICO_SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/sdk/pico)
 set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/sdk/freertos)
 
@@ -43,8 +50,10 @@ IF(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Og")
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
+# initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# generic HyperSerialPico settings
 set(HyperSerialPicoCompanionLibs FreeRTOS-Kernel FreeRTOS-Kernel-Heap1 pico_stdlib pico_multicore hardware_pio hardware_dma hardware_spi)
 set(HyperSerialPicoCompanionIncludes ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/sdk/config)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/generated)
@@ -57,20 +66,42 @@ if(NOT CMAKE_HOST_WIN32)
 	set(YellowColor "${EscChar}[33m")
 endif()
 
-# Overrides via command line
 if (OVERRIDE_DATA_PIN)
 	set(OUTPUT_DATA_PIN ${OVERRIDE_DATA_PIN})
-endif()
-if (OVERRIDE_BOOT_WORKAROUND)
-	set(BOOT_WORKAROUND ${OVERRIDE_BOOT_WORKAROUND})
+	message( STATUS "${YellowColor}Overriding Neopixel Data GPIO: ${OUTPUT_DATA_PIN}${ColorReset}")
 endif()
 
-# NETTOYAGE DES LOGS ET AFFICHAGE REEL
+if (OVERRIDE_SPI_DATA_PIN)
+	set(OUTPUT_SPI_DATA_PIN ${OVERRIDE_SPI_DATA_PIN})
+	message( STATUS "${YellowColor}Overriding SPI Data GPIO: ${OUTPUT_SPI_DATA_PIN}${ColorReset}")
+endif()
+
+if (OVERRIDE_SPI_CLOCK_PIN)
+	set(OUTPUT_SPI_CLOCK_PIN ${OVERRIDE_SPI_CLOCK_PIN})
+	message( STATUS "${YellowColor}Overriding SPI Clock GPIO: ${OUTPUT_SPI_CLOCK_PIN}${ColorReset}")
+endif()
+
+if (OVERRIDE_SPI_INTERFACE)
+	set(OUTPUT_SPI_INTERFACE ${OVERRIDE_SPI_INTERFACE})
+	message( STATUS "${YellowColor}Overriding SPI Interface: ${OUTPUT_SPI_INTERFACE}${ColorReset}")
+endif()
+
+if (OVERRIDE_BOOT_WORKAROUND)
+	set(BOOT_WORKAROUND ${OVERRIDE_BOOT_WORKAROUND})
+	message( STATUS "${YellowColor}Overriding boot workaround: ${BOOT_WORKAROUND}${ColorReset}")
+endif()
+
 message( STATUS "---------------------------")
-message( STATUS "Config Evan SCORPIO (1+2 et 3) :")
-message( STATUS "Piste 1 (DATA_PIN) : GPIO ${OUTPUT_DATA_PIN} (LEDs 0-339)")
-message( STATUS "Piste 2 (SEGMENT_2): GPIO 17 (LEDs 340+)")
-message( STATUS "Boot workaround    : ${BOOT_WORKAROUND}")
+message( STATUS "Neopixel Data GPIO: ${GreenColor}${OUTPUT_DATA_PIN}${ColorReset}")
+message( STATUS "SPI Data GPIO: ${GreenColor}${OUTPUT_SPI_DATA_PIN}${ColorReset}")
+message( STATUS "SPI Clock GPIO: ${GreenColor}${OUTPUT_SPI_CLOCK_PIN}${ColorReset}")
+
+if (OUTPUT_SPI_CHIP_SELECT)
+	message( STATUS "SPI Select GPIO: ${GreenColor}${OUTPUT_SPI_CHIP_SELECT}${ColorReset}")
+endif()
+
+message( STATUS "SPI Interface: ${GreenColor}${OUTPUT_SPI_INTERFACE}${ColorReset}")
+message( STATUS "Boot workaround: ${GreenColor}${BOOT_WORKAROUND}${ColorReset}")
 message( STATUS "---------------------------")
 
 add_compile_options(-ftrack-macro-expansion=0 -fno-diagnostics-show-caret -fdiagnostics-color=auto)
@@ -94,14 +125,23 @@ macro(HyperSerialPicoTarget HyperSerialPicoTargetName)
     add_custom_command(TARGET ${HyperSerialPicoTargetName} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/${HyperSerialPicoTargetName}.uf2 ${CMAKE_CURRENT_SOURCE_DIR}/firmware)
 endmacro()
 
+# targets for different LED strips
 IF(NOT SECOND_SEGMENT_INDEX)
-    # Single segment logic (Ignoré)
+    IF(NOT DISABLE_SPI_LEDS)
+        HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_Spi")
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_Spi" PRIVATE -DSPILED_APA102 -DSPI_INTERFACE=${OUTPUT_SPI_INTERFACE} -DDATA_PIN=${OUTPUT_SPI_DATA_PIN} -DCLOCK_PIN=${OUTPUT_SPI_CLOCK_PIN})
+        HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_ws2801")
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_ws2801" PRIVATE -DSPILED_WS2801 -DSPI_INTERFACE=${OUTPUT_SPI_INTERFACE} -DDATA_PIN=${OUTPUT_SPI_DATA_PIN} -DCLOCK_PIN=${OUTPUT_SPI_CLOCK_PIN})
+    endif()
+    HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_sk6812Cold")
+    target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Cold" PRIVATE -DNEOPIXEL_RGBW -DCOLD_WHITE -DDATA_PIN=${OUTPUT_DATA_PIN})
+    HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_sk6812Neutral")
+    target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Neutral" PRIVATE -DNEOPIXEL_RGBW -DDATA_PIN=${OUTPUT_DATA_PIN})
+    HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_ws2812")
+    target_compile_definitions("${CMAKE_PROJECT_NAME}_ws2812" PRIVATE -DNEOPIXEL_RGB -DDATA_PIN=${OUTPUT_DATA_PIN})
 ELSE()
     IF(NOT SECOND_SEGMENT_REVERSED)
-        # Compilation du firmware SK6812 Neutral White
+        HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_sk6812Cold_multisegment_at_${SECOND_SEGMENT_INDEX}")
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Cold_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGBW -DCOLD_WHITE -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX=${SECOND_SEGMENT_INDEX})
         HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_sk6812Neutral_multisegment_at_${SECOND_SEGMENT_INDEX}")
-        target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Neutral_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGBW -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX=${SECOND_SEGMENT_INDEX})
-    ELSE()
-        # Reversed logic (Ignoré)
-    ENDIF()
-ENDIF()
+        target_compile_definitions("${CMAKE_PROJECT_NAME}_sk6812Neutral_multisegment_at_${SECOND_SEGMENT_INDEX}" PRIVATE -DNEOPIXEL_RGBW -DDATA_PIN=${OUTPUT_DATA_PIN} -DSECOND_SEGMENT_START_INDEX
