@@ -1,26 +1,27 @@
 if (NOT PICO_PROGRAM_MAIN_ENTRY)
-	# ==========================================
-	# CONFIGURATION EVAN (Mode 1+2 et 3)
-	# ==========================================
+    # ==========================================
+    # CONFIGURATION EVAN SCORPIO (Mode 1+2 et 3)
+    # ==========================================
 
-	set(BOOT_WORKAROUND OFF)
+    # Adafruit a souvent besoin de ce fix pour booter correctement
+    set(BOOT_WORKAROUND ON) 
 
-	# --- PISTE 1 (GPIO 2) ---
-	# Contient Ruban 1 + Ruban 2 (Daisy Chain)
-	# Total = 340 LEDs
-	set(OUTPUT_DATA_PIN 2)
+    # --- PISTE 1 (Pin "0" sur la carte = GPIO 16) ---
+    # C'est LA modif importante. Le Scorpio sort le 5V ici.
+    # Contient Ruban 1 + Ruban 2 (Daisy Chain)
+    set(OUTPUT_DATA_PIN 16)
 
-	# --- PISTE 2 (GPIO 3) ---
-	# Contient Ruban 3
-	# Démarre après la 340ème LED
-	set(SECOND_SEGMENT_INDEX 340)
+    # --- PISTE 2 (Pin "1" sur la carte = GPIO 17) ---
+    # HyperSerialPico prend automatiquement OUTPUT_DATA_PIN + 1
+    # Donc ça sortira sur le GPIO 17 (Pin "1")
+    set(SECOND_SEGMENT_INDEX 340)
 
-	set(SECOND_SEGMENT_REVERSED OFF)
+    set(SECOND_SEGMENT_REVERSED OFF)
 
-	# --- SPI (Non utilisé) ---
-	set(OUTPUT_SPI_DATA_PIN 6)
-	set(OUTPUT_SPI_CLOCK_PIN 7)
-	set(OUTPUT_SPI_INTERFACE spi0)
+    # --- SPI (Non utilisé) ---
+    set(OUTPUT_SPI_DATA_PIN 6) # Tu peux laisser ça, on s'en fout
+    set(OUTPUT_SPI_CLOCK_PIN 7)
+    set(OUTPUT_SPI_INTERFACE spi0)
 
 endif()
 
