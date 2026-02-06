@@ -1,28 +1,40 @@
 if (NOT PICO_PROGRAM_MAIN_ENTRY)
-    # ==========================================
-    # CLEAN CONFIGURATION - PINS 6 & 7
-    # ==========================================
-    
-    set(BOOT_WORKAROUND ON)
+	# =================================================================
+	# CONFIGURATION EVAN - SAUVETAGE SUR A0 & A1
+	# =================================================================
 
-    # PIN 6 (GPIO 22)
-    set(OUTPUT_DATA_PIN 22)
+	# Sécurité au démarrage (Indispensable maintenant)
+	set(BOOT_WORKAROUND ON)
 
-    # PIN 7 (GPIO 23) -> Automatic via Index
-    set(SECOND_SEGMENT_INDEX 340)
-    set(SECOND_SEGMENT_REVERSED OFF)
+	# --- PISTE 1 (Le gros ruban) ---
+	# Branché sur le trou A0 de la carte
+	# A0 correspond au GPIO 26 du processeur
+	set(OUTPUT_DATA_PIN 26)
 
-    # SPI Settings (Default)
-    set(OUTPUT_SPI_DATA_PIN 3)
-    set(OUTPUT_SPI_CLOCK_PIN 2)
-    set(OUTPUT_SPI_INTERFACE spi0)
+	# --- PISTE 2 (Le ruban du haut) ---
+	# On coupe à la LED 340.
+	# Le système passera AUTOMATIQUEMENT au GPIO suivant :
+	# 26 + 1 = 27 (Ce qui correspond exactement au trou A1)
+	set(SECOND_SEGMENT_INDEX 340)
 
+	# Sens normal (OFF)
+	set(SECOND_SEGMENT_REVERSED OFF)
+
+	# --- SPI (On ne touche pas, c'est la config par défaut) ---
+	set(OUTPUT_SPI_DATA_PIN 3)
+	set(OUTPUT_SPI_CLOCK_PIN 2)
+	set(OUTPUT_SPI_INTERFACE spi0)
+
+	# Fin de la config utilisateur
 endif()
 
 cmake_minimum_required(VERSION 3.13)
 
+# Disable Pico 'Reset device'
 add_definitions ( -DPICO_STDIO_USB_ENABLE_RESET_VIA_VENDOR_INTERFACE=0 )
 
+# initialize the SDK based on PICO_SDK_PATH
+# note: this must happen before project()
 set(PICO_SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/sdk/pico)
 set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/sdk/freertos)
 
@@ -40,8 +52,10 @@ IF(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Og")
 ENDIF(CMAKE_COMPILER_IS_GNUCC)
 
+# initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# generic HyperSerialPico settings
 set(HyperSerialPicoCompanionLibs FreeRTOS-Kernel FreeRTOS-Kernel-Heap1 pico_stdlib pico_multicore hardware_pio hardware_dma hardware_spi)
 set(HyperSerialPicoCompanionIncludes ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/sdk/config)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/generated)
@@ -113,6 +127,7 @@ macro(HyperSerialPicoTarget HyperSerialPicoTargetName)
     add_custom_command(TARGET ${HyperSerialPicoTargetName} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/${HyperSerialPicoTargetName}.uf2 ${CMAKE_CURRENT_SOURCE_DIR}/firmware)
 endmacro()
 
+# targets for different LED strips
 IF(NOT SECOND_SEGMENT_INDEX)
     IF(NOT DISABLE_SPI_LEDS)
         HyperSerialPicoTarget("${CMAKE_PROJECT_NAME}_Spi")
