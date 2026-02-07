@@ -15,7 +15,7 @@ if (NOT PICO_PROGRAM_MAIN_ENTRY)
 	# On coupe à la LED 340 (comme avant).
 	# Le système bascule AUTOMATIQUEMENT sur le GPIO suivant :
 	# 2 + 1 = 3 (Donc GP3)
-	set(SECOND_SEGMENT_INDEX 340)
+	set(SECOND_SEGMENT_INDEX 341)
 
 	# Sens normal
 	set(SECOND_SEGMENT_REVERSED OFF)
